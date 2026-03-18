@@ -1,27 +1,35 @@
 import { sql } from './db'
 import QRCode from 'qrcode'
 
-export async function createCard(userId: number, cardData: {
+export async function createCard(userId: string, cardData: {
   title: string
-  company?: string
+  company?: string   // maps to → role
   phone?: string
   email?: string
   website?: string
   about?: string
-  cardColor?: string
+  cardColor?: string // maps to → background_color
   socialLinks?: Array<{ platform: string; url: string }>
 }) {
   try {
     const result = await sql`
-      INSERT INTO business_cards (user_id, title, company, phone, email, website, about, card_color)
-      VALUES (${userId}, ${cardData.title}, ${cardData.company || null}, ${cardData.phone || null}, 
-              ${cardData.email || null}, ${cardData.website || null}, ${cardData.about || null}, 
-              ${cardData.cardColor || '#ffffff'})
+      INSERT INTO business_cards (
+        user_id, title, role, phone, email, website, about, background_color
+      )
+      VALUES (
+        ${userId},
+        ${cardData.title},
+        ${cardData.company || null},
+        ${cardData.phone || null},
+        ${cardData.email || null},
+        ${cardData.website || null},
+        ${cardData.about || null},
+        ${cardData.cardColor || '#FFFFFF'}
+      )
       RETURNING *
     `
     const card = result[0]
 
-    // Insert social links if provided
     if (cardData.socialLinks && cardData.socialLinks.length > 0) {
       for (const link of cardData.socialLinks) {
         await sql`
@@ -60,10 +68,12 @@ export async function getCardById(cardId: number) {
   }
 }
 
-export async function getCardsByUserId(userId: number) {
+export async function getCardsByUserId(userId: string) {
   try {
     const result = await sql`
-      SELECT * FROM business_cards WHERE user_id = ${userId} ORDER BY created_at DESC
+      SELECT * FROM business_cards 
+      WHERE user_id = ${userId} 
+      ORDER BY created_at DESC
     `
     return result
   } catch (error) {
@@ -82,49 +92,21 @@ export async function updateCard(cardId: number, cardData: {
   cardColor?: string
 }) {
   try {
-    const updates = []
-    const values = []
-
-    if (cardData.title !== undefined) {
-      updates.push(`title = $${updates.length + 1}`)
-      values.push(cardData.title)
-    }
-    if (cardData.company !== undefined) {
-      updates.push(`company = $${updates.length + 1}`)
-      values.push(cardData.company)
-    }
-    if (cardData.phone !== undefined) {
-      updates.push(`phone = $${updates.length + 1}`)
-      values.push(cardData.phone)
-    }
-    if (cardData.email !== undefined) {
-      updates.push(`email = $${updates.length + 1}`)
-      values.push(cardData.email)
-    }
-    if (cardData.website !== undefined) {
-      updates.push(`website = $${updates.length + 1}`)
-      values.push(cardData.website)
-    }
-    if (cardData.about !== undefined) {
-      updates.push(`about = $${updates.length + 1}`)
-      values.push(cardData.about)
-    }
-    if (cardData.cardColor !== undefined) {
-      updates.push(`card_color = $${updates.length + 1}`)
-      values.push(cardData.cardColor)
-    }
-
-    updates.push(`updated_at = CURRENT_TIMESTAMP`)
-
-    if (updates.length === 1) return null
-
     const result = await sql`
       UPDATE business_cards
-      SET ${updates.join(', ')}
+      SET
+        title            = COALESCE(${cardData.title            ?? null}, title),
+        role             = COALESCE(${cardData.company          ?? null}, role),
+        phone            = COALESCE(${cardData.phone            ?? null}, phone),
+        email            = COALESCE(${cardData.email            ?? null}, email),
+        website          = COALESCE(${cardData.website          ?? null}, website),
+        about            = COALESCE(${cardData.about            ?? null}, about),
+        background_color = COALESCE(${cardData.cardColor        ?? null}, background_color),
+        updated_at       = CURRENT_TIMESTAMP
       WHERE id = ${cardId}
       RETURNING *
     `
-    return result[0]
+    return result[0] ?? null
   } catch (error) {
     console.error('[v0] Error updating card:', error)
     throw error
@@ -153,7 +135,8 @@ export async function generateQRCode(text: string) {
 
 export async function trackAnalyticsEvent(cardId: number, eventType: string, req: any) {
   try {
-    const ipAddress = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0]
+    const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+      .toString().split(',')[0]
     const userAgent = req.headers['user-agent']
 
     await sql`
@@ -162,7 +145,7 @@ export async function trackAnalyticsEvent(cardId: number, eventType: string, req
     `
   } catch (error) {
     console.error('[v0] Error tracking analytics:', error)
-    // Don't throw - analytics tracking should not break the app
+    // Don't throw - analytics should not break the app
   }
 }
 

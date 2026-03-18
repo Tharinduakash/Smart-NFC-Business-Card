@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 import { sql } from './db'
 
 export async function hashPassword(password: string): Promise<string> {
@@ -13,7 +13,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 export async function getUserByEmail(email: string) {
   try {
     const result = await sql`
-      SELECT id, email, name, profile_image, bio, location, created_at, updated_at
+      SELECT id, email, username, first_name, last_name, company_name, created_at, updated_at
       FROM users
       WHERE email = ${email.toLowerCase()}
     `
@@ -24,13 +24,30 @@ export async function getUserByEmail(email: string) {
   }
 }
 
-export async function createUser(email: string, password: string, name: string) {
+export async function createUser(
+  email: string,
+  password: string,
+  firstName: string,
+  lastName?: string,
+  username?: string,
+  companyName?: string
+) {
   try {
     const hashedPassword = await hashPassword(password)
+    // Use email prefix as username if not provided
+    const finalUsername = username ?? email.split('@')[0] + '_' + Date.now()
+
     const result = await sql`
-      INSERT INTO users (email, password, name)
-      VALUES (${email.toLowerCase()}, ${hashedPassword}, ${name})
-      RETURNING id, email, name, created_at
+      INSERT INTO users (email, password_hash, username, first_name, last_name, company_name)
+      VALUES (
+        ${email.toLowerCase()},
+        ${hashedPassword},
+        ${finalUsername},
+        ${firstName},
+        ${lastName ?? null},
+        ${companyName ?? null}
+      )
+      RETURNING id, email, username, first_name, last_name, created_at
     `
     return result[0]
   } catch (error) {
@@ -42,20 +59,20 @@ export async function createUser(email: string, password: string, name: string) 
 export async function verifyUserCredentials(email: string, password: string) {
   try {
     const result = await sql`
-      SELECT id, email, name, password
+      SELECT id, email, username, first_name, last_name, password_hash
       FROM users
       WHERE email = ${email.toLowerCase()}
     `
     if (result.length === 0) return null
 
     const user = result[0]
-    const passwordMatch = await verifyPassword(password, user.password)
+    const passwordMatch = await verifyPassword(password, user.password_hash)
     if (!passwordMatch) return null
 
     return {
-      id: user.id,
+      id: String(user.id),
       email: user.email,
-      name: user.name,
+      name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || user.username,
     }
   } catch (error) {
     console.error('[v0] Error verifying credentials:', error)
@@ -66,7 +83,7 @@ export async function verifyUserCredentials(email: string, password: string) {
 export async function getUserById(id: number) {
   try {
     const result = await sql`
-      SELECT id, email, name, profile_image, bio, location, created_at, updated_at
+      SELECT id, email, username, first_name, last_name, company_name, created_at, updated_at
       FROM users
       WHERE id = ${id}
     `
@@ -77,44 +94,28 @@ export async function getUserById(id: number) {
   }
 }
 
-export async function updateUser(id: number, data: { name?: string; bio?: string; location?: string; profile_image?: string }) {
+export async function updateUser(
+  id: number,
+  data: {
+    first_name?: string
+    last_name?: string
+    company_name?: string
+    username?: string
+  }
+) {
   try {
-    const updates = []
-    const values = []
-    let valueIndex = 1
-
-    if (data.name !== undefined) {
-      updates.push(`name = $${valueIndex}`)
-      values.push(data.name)
-      valueIndex++
-    }
-    if (data.bio !== undefined) {
-      updates.push(`bio = $${valueIndex}`)
-      values.push(data.bio)
-      valueIndex++
-    }
-    if (data.location !== undefined) {
-      updates.push(`location = $${valueIndex}`)
-      values.push(data.location)
-      valueIndex++
-    }
-    if (data.profile_image !== undefined) {
-      updates.push(`profile_image = $${valueIndex}`)
-      values.push(data.profile_image)
-      valueIndex++
-    }
-
-    updates.push(`updated_at = CURRENT_TIMESTAMP`)
-
-    if (updates.length === 1) return null // Only has updated_at
-
     const result = await sql`
       UPDATE users
-      SET ${updates.join(', ')}
+      SET
+        first_name   = COALESCE(${data.first_name   ?? null}, first_name),
+        last_name    = COALESCE(${data.last_name    ?? null}, last_name),
+        company_name = COALESCE(${data.company_name ?? null}, company_name),
+        username     = COALESCE(${data.username     ?? null}, username),
+        updated_at   = CURRENT_TIMESTAMP
       WHERE id = ${id}
-      RETURNING id, email, name, profile_image, bio, location, created_at, updated_at
+      RETURNING id, email, username, first_name, last_name, company_name, created_at, updated_at
     `
-    return result[0]
+    return result[0] ?? null
   } catch (error) {
     console.error('[v0] Error updating user:', error)
     throw error

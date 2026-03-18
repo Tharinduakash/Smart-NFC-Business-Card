@@ -1,21 +1,20 @@
-import NextAuth from 'next-auth'
+import NextAuth, { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { verifyUserCredentials } from './auth'
 
-export const authConfig = {
+const config: NextAuthConfig = {
   providers: [
     Credentials({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
-
         try {
           const user = await verifyUserCredentials(
             credentials.email as string,
             credentials.password as string
           )
-          return user
+          return user ?? null
         } catch (error) {
           console.error('[v0] Auth error:', error)
           return null
@@ -37,7 +36,7 @@ export const authConfig = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as number
+        session.user.id = token.id as string
         session.user.email = token.email as string
         session.user.name = token.name as string
       }
@@ -46,9 +45,11 @@ export const authConfig = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)
+// 👇 Export separately — this is the key fix
+export const { handlers, auth, signIn, signOut } = NextAuth(config)
+export const authConfig = config

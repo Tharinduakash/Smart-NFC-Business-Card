@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Check, Spinner } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 const plans = [
@@ -172,14 +172,14 @@ export default function UpgradePage() {
                 className="w-full mb-6"
                 variant={plan.popular ? 'default' : 'outline'}
               >
-                {loading === plan.planId && <Spinner className="mr-2" />}
+                {loading === plan.planId && <Loader2 className="mr-2" />}
                 {plan.cta}
               </Button>
 
               <div className="space-y-3">
                 {plan.features.map((feature, fIndex) => (
                   <div key={fIndex} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     <span className="text-foreground text-sm">{feature}</span>
                   </div>
                 ))}

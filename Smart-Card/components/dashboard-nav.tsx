@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
-import { LayoutGrid, AnalyticsIcon, Settings, LogOut } from 'lucide-react'
+import { LayoutGrid, BarChart2, Settings, LogOut } from 'lucide-react'
 
 interface DashboardNavProps {
   user: {
@@ -27,7 +27,7 @@ export function DashboardNav({ user }: DashboardNavProps) {
     {
       href: '/dashboard/analytics',
       label: 'Analytics',
-      icon: AnalyticsIcon,
+      icon: BarChart2,
       active: pathname === '/dashboard/analytics',
     },
     {
