@@ -12,6 +12,11 @@ const cardSchema = z.object({
   website: z.string().url().optional().or(z.literal('')),
   about: z.string().optional(),
   cardColor: z.string().optional(),
+  gradientStart: z.string().optional(),
+  gradientEnd: z.string().optional(),
+  gradientAngle: z.string().optional(),
+  profileImage: z.string().optional(),
+  nfcUrl: z.string().optional(),
   socialLinks: z.array(z.object({
     platform: z.string(),
     url: z.string().url(),

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Edit2, Trash2, Share2, QrCode } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Spinner } from '@/components/ui/spinner'
+import FlipCard from '@/components/FlipCard'
 
 interface Card {
   id: number
@@ -13,7 +14,14 @@ interface Card {
   company?: string
   email?: string
   phone?: string
+  website?: string
+  about?: string
+  profile_image?: string
   card_color?: string
+  gradient_start?: string
+  gradient_end?: string
+  gradient_angle?: string
+  nfc_url?: string
   created_at: string
 }
 
@@ -102,37 +110,25 @@ export default function DashboardPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-8">
           {cards.map((card) => (
-            <div
-              key={card.id}
-              className="border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors bg-card"
-            >
-              <div
-                className="h-32 p-4 text-white"
-                style={{ backgroundColor: card.card_color || '#3366cc' }}
-              >
-                <h3 className="font-bold text-lg">{card.title}</h3>
-                {card.company && <p className="text-sm opacity-90">{card.company}</p>}
-              </div>
-
-              <div className="p-4">
-                {card.email && (
-                  <p className="text-sm text-muted-foreground truncate mb-2">{card.email}</p>
-                )}
-                {card.phone && (
-                  <p className="text-sm text-muted-foreground truncate mb-4">{card.phone}</p>
-                )}
-
+            <div key={card.id} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">{card.title}</h3>
+                  {card.company && (
+                    <p className="text-sm text-muted-foreground">{card.company}</p>
+                  )}
+                </div>
                 <div className="flex gap-2">
-                  <Link href={`/dashboard/cards/${card.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">
+                  <Link href={`/dashboard/cards/${card.id}`}>
+                    <Button variant="outline" size="sm">
                       <Edit2 className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
                   </Link>
-                  <Link href={`/cards/${card.id}/qr`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">
+                  <Link href={`/cards/${card.id}/qr`}>
+                    <Button variant="outline" size="sm">
                       <Share2 className="w-4 h-4 mr-2" />
                       Share
                     </Button>
@@ -144,6 +140,24 @@ export default function DashboardPage() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
+
+              <div className="max-w-md">
+                <FlipCard
+                  title={card.title}
+                  company={card.company}
+                  email={card.email}
+                  phone={card.phone}
+                  website={card.website}
+                  about={card.about}
+                  profileImage={card.profile_image}
+                  cardColor={card.card_color}
+                  gradientStart={card.gradient_start}
+                  gradientEnd={card.gradient_end}
+                  gradientAngle={card.gradient_angle}
+                  nfcUrl={card.nfc_url}
+                  qrCodeUrl={`/api/qr?url=${encodeURIComponent(card.nfc_url || `/u/${card.id}`)}`}
+                />
               </div>
             </div>
           ))}

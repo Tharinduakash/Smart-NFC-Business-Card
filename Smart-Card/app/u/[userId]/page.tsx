@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { Mail, Phone, Globe, Linkedin, Twitter, Github, Facebook, Instagram, MessageCircle, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import FlipCard from '@/components/FlipCard'
 
 interface UserProfile {
   user: {
@@ -24,6 +25,11 @@ interface UserProfile {
     website?: string
     about?: string
     card_color?: string
+    profile_image?: string
+    gradient_start?: string
+    gradient_end?: string
+    gradient_angle?: string
+    nfc_url?: string
     socialLinks?: Array<{ platform: string; url: string }>
   }
 }
@@ -43,6 +49,7 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [qrCode, setQrCode] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProfile()
@@ -55,6 +62,13 @@ export default function PublicProfilePage() {
       if (!response.ok) throw new Error('Profile not found')
       const data = await response.json()
       setProfile(data)
+
+      // Generate QR code for the profile URL
+      const qrResponse = await fetch(`/api/qr?url=/u/${userId}`)
+      if (qrResponse.ok) {
+        const qrData = await qrResponse.json()
+        setQrCode(qrData.qrCode)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile')
     } finally {
@@ -120,23 +134,43 @@ END:VCARD`
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          {/* Card */}
-          <div className="rounded-2xl shadow-2xl overflow-hidden mb-6">
-            <div
-              className="h-40 p-8 text-white relative overflow-hidden"
-              style={{ backgroundColor: card.card_color || '#3366cc' }}
-            >
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20" />
-              <div className="relative z-10">
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">{user.name}</h1>
-                <p className="text-lg font-semibold text-white/90">{card.title}</p>
-                {card.company && <p className="text-white/80">{card.company}</p>}
-              </div>
+        <div className="max-w-4xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 mb-8">
+            {/* Flip Card */}
+            <div className="flex items-center justify-center">
+              <FlipCard
+                title={card.title}
+                company={card.company}
+                email={card.email}
+                phone={card.phone}
+                website={card.website}
+                about={card.about}
+                profileImage={card.profile_image}
+                cardColor={card.card_color}
+                gradientStart={card.gradient_start}
+                gradientEnd={card.gradient_end}
+                gradientAngle={card.gradient_angle}
+                nfcUrl={card.nfc_url}
+                qrCodeUrl={qrCode || undefined}
+              />
             </div>
 
-            {/* Contact Info */}
-            <div className="bg-card p-8 border-t border-border">
+            {/* Profile Info Card */}
+            <div className="rounded-2xl shadow-2xl overflow-hidden bg-card border border-border">
+              <div
+                className="h-40 p-8 text-white relative overflow-hidden"
+                style={{ backgroundColor: card.card_color || '#3366cc' }}
+              >
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20" />
+                <div className="relative z-10">
+                  <h1 className="text-3xl md:text-4xl font-bold mb-2">{user.name}</h1>
+                  <p className="text-lg font-semibold text-white/90">{card.title}</p>
+                  {card.company && <p className="text-white/80">{card.company}</p>}
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="p-8 border-t border-border">
               <div className="space-y-4 mb-8">
                 {card.email && (
                   <a
@@ -238,20 +272,21 @@ END:VCARD`
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="border-t border-border pt-6 flex gap-3">
-                <Button onClick={saveContact} className="flex-1">
-                  <Download className="w-4 h-4 mr-2" />
-                  Save Contact
-                </Button>
-                {card.email && (
-                  <a href={`mailto:${card.email}`} className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      <Mail className="w-4 h-4 mr-2" />
-                      Email
-                    </Button>
-                  </a>
-                )}
+                {/* Action Buttons */}
+                <div className="border-t border-border pt-6 flex gap-3">
+                  <Button onClick={saveContact} className="flex-1">
+                    <Download className="w-4 h-4 mr-2" />
+                    Save Contact
+                  </Button>
+                  {card.email && (
+                    <a href={`mailto:${card.email}`} className="flex-1">
+                      <Button variant="outline" className="w-full">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Email
+                      </Button>
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           </div>

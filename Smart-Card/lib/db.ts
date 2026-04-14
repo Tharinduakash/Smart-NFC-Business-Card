@@ -34,6 +34,11 @@ export async function initializeDatabase() {
         website VARCHAR(255),
         about TEXT,
         card_color VARCHAR(7) DEFAULT '#ffffff',
+        gradient_start VARCHAR(7),
+        gradient_end VARCHAR(7),
+        gradient_angle VARCHAR(50),
+        profile_image VARCHAR(255),
+        nfc_url VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
