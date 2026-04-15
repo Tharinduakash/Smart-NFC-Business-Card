@@ -3,18 +3,28 @@ import QRCode from 'qrcode'
 
 export async function createCard(userId: string, cardData: {
   title: string
-  company?: string   // maps to → role
+  company?: string
   phone?: string
   email?: string
   website?: string
   about?: string
-  cardColor?: string // maps to → background_color
+  cardColor?: string
+  gradientStart?: string
+  gradientEnd?: string
+  gradientAngle?: string
+  profileImage?: string
+  nfcUrl?: string
   socialLinks?: Array<{ platform: string; url: string }>
 }) {
   try {
+    // Generate NFC URL based on the app URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const nfcUrlFinal = cardData.nfcUrl || `${appUrl}/u/${userId}`
+    
     const result = await sql`
       INSERT INTO business_cards (
-        user_id, title, role, phone, email, website, about, background_color
+        user_id, title, company, phone, email, website, about, card_color,
+        gradient_start, gradient_end, gradient_angle, profile_image, nfc_url
       )
       VALUES (
         ${userId},
@@ -24,7 +34,12 @@ export async function createCard(userId: string, cardData: {
         ${cardData.email || null},
         ${cardData.website || null},
         ${cardData.about || null},
-        ${cardData.cardColor || '#FFFFFF'}
+        ${cardData.cardColor || '#3366cc'},
+        ${cardData.gradientStart || null},
+        ${cardData.gradientEnd || null},
+        ${cardData.gradientAngle || null},
+        ${cardData.profileImage || null},
+        ${nfcUrlFinal}
       )
       RETURNING *
     `
@@ -90,18 +105,28 @@ export async function updateCard(cardId: number, cardData: {
   website?: string
   about?: string
   cardColor?: string
+  gradientStart?: string
+  gradientEnd?: string
+  gradientAngle?: string
+  profileImage?: string
+  nfcUrl?: string
 }) {
   try {
     const result = await sql`
       UPDATE business_cards
       SET
         title            = COALESCE(${cardData.title            ?? null}, title),
-        role             = COALESCE(${cardData.company          ?? null}, role),
+        company          = COALESCE(${cardData.company          ?? null}, company),
         phone            = COALESCE(${cardData.phone            ?? null}, phone),
         email            = COALESCE(${cardData.email            ?? null}, email),
         website          = COALESCE(${cardData.website          ?? null}, website),
         about            = COALESCE(${cardData.about            ?? null}, about),
-        background_color = COALESCE(${cardData.cardColor        ?? null}, background_color),
+        card_color       = COALESCE(${cardData.cardColor        ?? null}, card_color),
+        gradient_start   = COALESCE(${cardData.gradientStart    ?? null}, gradient_start),
+        gradient_end     = COALESCE(${cardData.gradientEnd      ?? null}, gradient_end),
+        gradient_angle   = COALESCE(${cardData.gradientAngle    ?? null}, gradient_angle),
+        profile_image    = COALESCE(${cardData.profileImage     ?? null}, profile_image),
+        nfc_url          = COALESCE(${cardData.nfcUrl           ?? null}, nfc_url),
         updated_at       = CURRENT_TIMESTAMP
       WHERE id = ${cardId}
       RETURNING *
