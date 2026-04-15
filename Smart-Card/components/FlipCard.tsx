@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createGradientStyle } from '@/lib/gradients'
-import { Wifi } from 'lucide-react'
+import { Smartphone } from 'lucide-react'
 
 interface FlipCardProps {
   title: string
@@ -17,6 +17,12 @@ interface FlipCardProps {
   gradientStart?: string
   gradientEnd?: string
   gradientAngle?: string
+  frontGradientStart?: string
+  frontGradientEnd?: string
+  frontGradientAngle?: string
+  backGradientStart?: string
+  backGradientEnd?: string
+  backGradientAngle?: string
   nfcUrl?: string
   qrCodeUrl?: string
 }
@@ -33,6 +39,12 @@ export default function FlipCard({
   gradientStart,
   gradientEnd,
   gradientAngle,
+  frontGradientStart,
+  frontGradientEnd,
+  frontGradientAngle,
+  backGradientStart,
+  backGradientEnd,
+  backGradientAngle,
   nfcUrl,
   qrCodeUrl,
 }: FlipCardProps) {
@@ -56,17 +68,26 @@ export default function FlipCard({
     loadQrCode()
   }, [nfcUrl, qrCodeUrl])
 
-  const backgroundStyle = gradientStart && gradientEnd
+  // Use separate gradients for front/back, fallback to single gradient
+  const frontBackground = (frontGradientStart && frontGradientEnd)
+    ? { background: `linear-gradient(${frontGradientAngle || '135deg'}, ${frontGradientStart}, ${frontGradientEnd})` }
+    : (gradientStart && gradientEnd)
+    ? { background: `linear-gradient(${gradientAngle || '45deg'}, ${gradientStart}, ${gradientEnd})` }
+    : { backgroundColor: cardColor || '#3366cc' }
+
+  const backBackground = (backGradientStart && backGradientEnd)
+    ? { background: `linear-gradient(${backGradientAngle || '135deg'}, ${backGradientStart}, ${backGradientEnd})` }
+    : (gradientStart && gradientEnd)
     ? { background: `linear-gradient(${gradientAngle || '45deg'}, ${gradientStart}, ${gradientEnd})` }
     : { backgroundColor: cardColor || '#3366cc' }
 
   return (
     <div
-      className="w-full max-w-2xl cursor-pointer perspective"
+      className="w-full max-w-md cursor-pointer mx-auto"
       onClick={() => setIsFlipped(!isFlipped)}
       style={{
         perspective: '1000px',
-        aspectRatio: '16 / 10',
+        aspectRatio: '1.6 / 1',
       }}
     >
       <div
@@ -76,80 +97,113 @@ export default function FlipCard({
           transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
         }}
       >
-        {/* Front Side */}
+        {/* Front Side - Credit Card Style */}
         <div
-          className="absolute w-full h-full rounded-3xl shadow-2xl p-8 flex flex-row items-center justify-between overflow-hidden"
+          className="absolute w-full h-full rounded-2xl shadow-2xl p-6 flex flex-col justify-between overflow-hidden text-white"
           style={{
             backfaceVisibility: 'hidden',
-            ...backgroundStyle,
+            ...frontBackground,
           }}
         >
-          {/* Left Section - Profile & Info */}
-          <div className="flex items-center gap-6 flex-1 z-10">
-            {/* Profile Image */}
+          {/* Top Section - Profile Image & NFC Icon */}
+          <div className="flex items-start justify-between">
+            {/* Profile Image - Minimal Border */}
             {profileImage && (
               <div className="flex-shrink-0">
-                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/30">
+                <div className="w-16 h-16 rounded-full overflow-hidden border border-white/40">
                   <Image
                     src={profileImage}
                     alt={title}
-                    width={80}
-                    height={80}
+                    width={64}
+                    height={64}
                     className="w-full h-full object-cover"
                   />
                 </div>
               </div>
             )}
 
-            {/* Text Info */}
-            <div className="text-white flex-1 min-w-0">
-              <h2 className="text-2xl font-bold mb-1 truncate">{title}</h2>
-              {company && <p className="text-sm opacity-90 mb-3 truncate">{company}</p>}
-
-              {/* Contact Info */}
-              <div className="space-y-1 text-xs opacity-85">
-                {email && <p className="truncate">{email}</p>}
-                {phone && <p className="truncate">{phone}</p>}
+            {/* NFC Icon - Top Right */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                <Smartphone className="w-5 h-5 text-white" strokeWidth={1.5} />
               </div>
+              <p className="text-xs font-semibold text-white/80">NFC</p>
             </div>
           </div>
 
-          {/* Right Section - NFC Icon */}
-          <div className="flex-shrink-0 ml-4 z-10">
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex items-center justify-center">
-              <Wifi className="w-8 h-8 text-white" strokeWidth={1.5} />
-            </div>
-            <p className="text-white/70 text-xs text-center mt-2 font-medium">NFC</p>
+          {/* Middle Section - Name & Title */}
+          <div>
+            <h2 className="text-2xl font-bold mb-1 tracking-tight">{title}</h2>
+            {company && (
+              <p className="text-sm font-medium text-white/90">{company}</p>
+            )}
+          </div>
+
+          {/* Bottom Section - Contact Info */}
+          <div className="space-y-1 text-xs font-medium text-white/85">
+            {email && (
+              <div className="flex items-center gap-2">
+                <span>📧</span>
+                <span className="truncate">{email}</span>
+              </div>
+            )}
+            {phone && (
+              <div className="flex items-center gap-2">
+                <span>📱</span>
+                <span>{phone}</span>
+              </div>
+            )}
+            {website && (
+              <div className="flex items-center gap-2">
+                <span>🌐</span>
+                <span className="truncate">{website}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Back Side */}
+        {/* Back Side - QR Code */}
         <div
-          className="absolute w-full h-full rounded-3xl shadow-2xl p-8 flex flex-col justify-between overflow-hidden"
+          className="absolute w-full h-full rounded-2xl shadow-2xl p-6 flex flex-col justify-between items-center overflow-hidden text-white"
           style={{
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            ...backgroundStyle,
+            ...backBackground,
           }}
         >
-          {/* Top Section - Branding */}
-          <div className="text-white z-10">
-            <p className="text-sm font-semibold opacity-90">{title}</p>
-            {company && <p className="text-xs opacity-75">{company}</p>}
+          {/* Top - Company Branding */}
+          <div className="text-center mt-2 z-10">
+            <p className="text-sm font-bold opacity-95 tracking-wide">{title}</p>
+            {company && (
+              <p className="text-xs font-medium opacity-75">{company}</p>
+            )}
           </div>
 
-          {/* Bottom Right - QR Code */}
-          <div className="absolute bottom-6 right-6 z-10">
-            {qrData && (
+          {/* QR Code - Bottom Right Position */}
+          <div className="absolute bottom-4 right-4 z-10 bg-white rounded-lg p-2">
+            {qrData ? (
               <img
                 src={qrData}
                 alt="QR Code"
-                className="w-20 h-20"
-                style={{
-                  filter: 'brightness(0) invert(1)',
-                  mixBlendMode: 'screen',
-                }}
+                className="w-24 h-24"
               />
+            ) : (
+              <div className="w-24 h-24 bg-white/20 flex items-center justify-center">
+                <span className="text-xs text-white/60">Loading...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Center - Website or About */}
+          <div className="text-center opacity-85 z-10">
+            {website && (
+              <p className="text-xs mb-2">{website}</p>
+            )}
+            {about && (
+              <p className="text-xs italic opacity-75 max-w-xs">{about}</p>
+            )}
+            {!website && !about && (
+              <p className="text-xs opacity-75">Scan QR to view full profile</p>
             )}
           </div>
         </div>

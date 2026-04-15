@@ -15,6 +15,12 @@ const cardSchema = z.object({
   gradientStart: z.string().optional(),
   gradientEnd: z.string().optional(),
   gradientAngle: z.string().optional(),
+  frontGradientStart: z.string().optional(),
+  frontGradientEnd: z.string().optional(),
+  frontGradientAngle: z.string().optional(),
+  backGradientStart: z.string().optional(),
+  backGradientEnd: z.string().optional(),
+  backGradientAngle: z.string().optional(),
   profileImage: z.string().optional(),
   nfcUrl: z.string().optional(),
   socialLinks: z.array(z.object({
@@ -39,14 +45,15 @@ export async function POST(request: NextRequest) {
       website: cardData.website || undefined,
     }
 
-    // Check if user already has a card
+    // Check card limit for free users (allow 2-3 cards for free tier)
     const existing = await getCardsByUserId(session.user.id)
+    const maxFreeCards = 3
     
-    if (existing.length > 0) {
-      // Update existing card instead of creating new one
-      const { updateCard } = await import('@/lib/cards')
-      const updated = await updateCard(existing[0].id, cleanedData)
-      return NextResponse.json(updated, { status: 200 })
+    if (existing.length >= maxFreeCards) {
+      return NextResponse.json(
+        { error: `Free users can create up to ${maxFreeCards} cards. Upgrade to create more.` },
+        { status: 403 }
+      )
     }
 
     const card = await createCard(session.user.id, cleanedData)
