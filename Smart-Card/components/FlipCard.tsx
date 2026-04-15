@@ -57,15 +57,16 @@ export default function FlipCard({
   }, [nfcUrl, qrCodeUrl])
 
   const backgroundStyle = gradientStart && gradientEnd
-    ? { background: createGradientStyle(gradientStart, gradientEnd, gradientAngle || '45deg') }
+    ? { background: `linear-gradient(${gradientAngle || '45deg'}, ${gradientStart}, ${gradientEnd})` }
     : { backgroundColor: cardColor || '#3366cc' }
 
   return (
     <div
-      className="h-96 cursor-pointer perspective"
+      className="w-full max-w-2xl cursor-pointer perspective"
       onClick={() => setIsFlipped(!isFlipped)}
       style={{
         perspective: '1000px',
+        aspectRatio: '16 / 10',
       }}
     >
       <div
@@ -77,21 +78,18 @@ export default function FlipCard({
       >
         {/* Front Side */}
         <div
-          className="absolute w-full h-full bg-card rounded-2xl shadow-xl p-8 flex flex-col justify-between overflow-hidden"
+          className="absolute w-full h-full rounded-3xl shadow-2xl p-8 flex flex-row items-center justify-between overflow-hidden"
           style={{
             backfaceVisibility: 'hidden',
             ...backgroundStyle,
           }}
         >
-          {/* Background decorations */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
-
-          <div className="relative z-10">
+          {/* Left Section - Profile & Info */}
+          <div className="flex items-center gap-6 flex-1 z-10">
             {/* Profile Image */}
             {profileImage && (
-              <div className="mb-4">
-                <div className="w-20 h-20 rounded-full border-4 border-white overflow-hidden">
+              <div className="flex-shrink-0">
+                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/30">
                   <Image
                     src={profileImage}
                     alt={title}
@@ -103,74 +101,56 @@ export default function FlipCard({
               </div>
             )}
 
-            {/* Main Info */}
-            <h2 className="text-3xl font-bold text-white mb-1">{title}</h2>
-            {company && <p className="text-lg text-white/90 mb-2">{company}</p>}
+            {/* Text Info */}
+            <div className="text-white flex-1 min-w-0">
+              <h2 className="text-2xl font-bold mb-1 truncate">{title}</h2>
+              {company && <p className="text-sm opacity-90 mb-3 truncate">{company}</p>}
 
-            {/* NFC Icon */}
-            {nfcUrl && (
-              <div className="flex items-center gap-2 text-white/80 text-sm mb-4">
-                <Wifi className="w-4 h-4" />
-                <span>NFC Enabled</span>
+              {/* Contact Info */}
+              <div className="space-y-1 text-xs opacity-85">
+                {email && <p className="truncate">{email}</p>}
+                {phone && <p className="truncate">{phone}</p>}
               </div>
-            )}
-
-            {/* Contact Info */}
-            <div className="space-y-1 text-sm text-white/80 mt-4">
-              {email && <p>📧 {email}</p>}
-              {phone && <p>📱 {phone}</p>}
-              {website && <p>🌐 {website.replace(/^https?:\/\/(www\.)?/, '')}</p>}
             </div>
           </div>
 
-          {/* Flip indicator */}
-          <div className="relative z-10 text-center">
-            <p className="text-xs text-white/60">Tap to flip</p>
+          {/* Right Section - NFC Icon */}
+          <div className="flex-shrink-0 ml-4 z-10">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex items-center justify-center">
+              <Wifi className="w-8 h-8 text-white" strokeWidth={1.5} />
+            </div>
+            <p className="text-white/70 text-xs text-center mt-2 font-medium">NFC</p>
           </div>
         </div>
 
-        {/* Back Side - QR Code */}
+        {/* Back Side */}
         <div
-          className="absolute w-full h-full bg-card rounded-2xl shadow-xl p-8 flex flex-col items-center justify-center"
+          className="absolute w-full h-full rounded-3xl shadow-2xl p-8 flex flex-col justify-between overflow-hidden"
           style={{
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
+            ...backgroundStyle,
           }}
         >
-          {/* Background gradient */}
-          <div
-            className="absolute inset-0 rounded-2xl"
-            style={{
-              ...backgroundStyle,
-              opacity: 0.1,
-            }}
-          />
-
-          <div className="relative z-10 flex flex-col items-center gap-4">
-            {qrData ? (
-              <>
-                <div className="p-4 bg-white rounded-lg">
-                  <img
-                    src={qrData}
-                    alt="QR Code"
-                    className="w-48 h-48"
-                  />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-foreground mb-1">Scan to view profile</p>
-                  <p className="text-xs text-muted-foreground">SmartCard</p>
-                </div>
-              </>
-            ) : (
-              <div className="text-center">
-                <p className="text-muted-foreground">QR Code will appear here</p>
-              </div>
-            )}
+          {/* Top Section - Branding */}
+          <div className="text-white z-10">
+            <p className="text-sm font-semibold opacity-90">{title}</p>
+            {company && <p className="text-xs opacity-75">{company}</p>}
           </div>
 
-          {/* Flip indicator */}
-          <div className="absolute bottom-4 left-0 right-0 text-center">
-            <p className="text-xs text-muted-foreground">Tap to flip back</p>
+          {/* Bottom Right - QR Code */}
+          <div className="absolute bottom-6 right-6 z-10">
+            {qrData && (
+              <img
+                src={qrData}
+                alt="QR Code"
+                className="w-20 h-20"
+                style={{
+                  filter: 'brightness(0) invert(1)',
+                  mixBlendMode: 'screen',
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
