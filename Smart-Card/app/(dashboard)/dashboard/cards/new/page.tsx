@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useToast } from '@/hooks/use-toast'
 import { ChevronLeft, Upload } from 'lucide-react'
 import { gradientPresets } from '@/lib/gradients'
+import FlipCard from '@/components/FlipCard'
 
 const socialPlatforms = [
   { id: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/yourprofile' },
@@ -28,6 +29,7 @@ export default function NewCardPage() {
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({})
   const [useGradient, setUseGradient] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'front' | 'back'>('front')
   const [formData, setFormData] = useState({
     title: '',
     company: '',
@@ -39,6 +41,12 @@ export default function NewCardPage() {
     gradientStart: '#0066cc',
     gradientEnd: '#00ccff',
     gradientAngle: '45deg',
+    frontGradientStart: '#0066cc',
+    frontGradientEnd: '#00b386',
+    frontGradientAngle: '135deg',
+    backGradientStart: '#0052a3',
+    backGradientEnd: '#00c853',
+    backGradientAngle: '135deg',
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -95,7 +103,22 @@ export default function NewCardPage() {
         .map(([platform, url]) => ({ platform, url }))
 
       const cardPayload: any = {
-        ...formData,
+        title: formData.title,
+        company: formData.company,
+        phone: formData.phone,
+        email: formData.email,
+        website: formData.website,
+        about: formData.about,
+        cardColor: formData.cardColor,
+        gradientStart: formData.gradientStart,
+        gradientEnd: formData.gradientEnd,
+        gradientAngle: formData.gradientAngle,
+        frontGradientStart: formData.frontGradientStart,
+        frontGradientEnd: formData.frontGradientEnd,
+        frontGradientAngle: formData.frontGradientAngle,
+        backGradientStart: formData.backGradientStart,
+        backGradientEnd: formData.backGradientEnd,
+        backGradientAngle: formData.backGradientAngle,
         socialLinks: socialLinksArray,
       }
 
@@ -230,7 +253,7 @@ export default function NewCardPage() {
               <FieldLabel htmlFor="profileImage">Profile Image (Optional)</FieldLabel>
               <div className="flex gap-3">
                 {profileImage ? (
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border-2 border-primary">
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
                     <Image
                       src={profileImage}
                       alt="Profile"
@@ -263,56 +286,50 @@ export default function NewCardPage() {
             </FieldGroup>
 
             <FieldGroup>
-              <FieldLabel>Background Style</FieldLabel>
+              <FieldLabel>Card Sides Styling</FieldLabel>
               <div className="space-y-4">
-                <div className="flex gap-3">
+                {/* Tab Selection */}
+                <div className="flex gap-2 border-b border-border">
                   <button
                     type="button"
-                    onClick={() => setUseGradient(false)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      !useGradient ? 'bg-primary text-white' : 'bg-muted text-foreground'
+                    onClick={() => setActiveTab('front')}
+                    className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                      activeTab === 'front'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground'
                     }`}
                   >
-                    Solid Color
+                    Front Side
                   </button>
                   <button
                     type="button"
-                    onClick={() => setUseGradient(true)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      useGradient ? 'bg-primary text-white' : 'bg-muted text-foreground'
+                    onClick={() => setActiveTab('back')}
+                    className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                      activeTab === 'back'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground'
                     }`}
                   >
-                    Gradient
+                    Back Side
                   </button>
                 </div>
 
-                {!useGradient ? (
-                  <div className="flex gap-3">
-                    <input
-                      type="color"
-                      id="cardColor"
-                      name="cardColor"
-                      value={formData.cardColor}
-                      onChange={handleChange}
-                      disabled={loading}
-                      className="w-16 h-10 rounded cursor-pointer"
-                    />
-                    <Input
-                      type="text"
-                      value={formData.cardColor}
-                      onChange={handleChange}
-                      disabled={loading}
-                      className="flex-1"
-                    />
-                  </div>
-                ) : (
-                  <>
+                {/* Front Side Gradients */}
+                {activeTab === 'front' && (
+                  <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-2 mb-4">
                       {gradientPresets.map((preset) => (
                         <button
                           key={preset.name}
                           type="button"
-                          onClick={() => applyGradientPreset(preset)}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              frontGradientStart: preset.start,
+                              frontGradientEnd: preset.end,
+                              frontGradientAngle: preset.angle,
+                            })
+                          }
                           className="p-3 rounded-lg text-sm font-medium text-white border-2 border-transparent hover:border-primary transition-colors"
                           style={{
                             background: `linear-gradient(${preset.angle}, ${preset.start}, ${preset.end})`,
@@ -325,27 +342,33 @@ export default function NewCardPage() {
 
                     <div className="space-y-3">
                       <div className="flex gap-3">
-                        <div>
-                          <FieldLabel htmlFor="gradientStart">Start Color</FieldLabel>
+                        <div className="flex-1">
+                          <FieldLabel htmlFor="frontGradientStart">Start Color</FieldLabel>
                           <input
                             type="color"
-                            id="gradientStart"
-                            value={formData.gradientStart}
+                            id="frontGradientStart"
+                            value={formData.frontGradientStart}
                             onChange={(e) =>
-                              setFormData({ ...formData, gradientStart: e.target.value })
+                              setFormData({
+                                ...formData,
+                                frontGradientStart: e.target.value,
+                              })
                             }
                             disabled={loading}
                             className="w-full h-10 rounded cursor-pointer"
                           />
                         </div>
-                        <div>
-                          <FieldLabel htmlFor="gradientEnd">End Color</FieldLabel>
+                        <div className="flex-1">
+                          <FieldLabel htmlFor="frontGradientEnd">End Color</FieldLabel>
                           <input
                             type="color"
-                            id="gradientEnd"
-                            value={formData.gradientEnd}
+                            id="frontGradientEnd"
+                            value={formData.frontGradientEnd}
                             onChange={(e) =>
-                              setFormData({ ...formData, gradientEnd: e.target.value })
+                              setFormData({
+                                ...formData,
+                                frontGradientEnd: e.target.value,
+                              })
                             }
                             disabled={loading}
                             className="w-full h-10 rounded cursor-pointer"
@@ -353,19 +376,102 @@ export default function NewCardPage() {
                         </div>
                       </div>
                       <div>
-                        <FieldLabel htmlFor="gradientAngle">Angle</FieldLabel>
+                        <FieldLabel htmlFor="frontGradientAngle">Angle</FieldLabel>
                         <Input
-                          id="gradientAngle"
-                          placeholder="45deg, 90deg, 180deg, etc."
-                          value={formData.gradientAngle}
+                          id="frontGradientAngle"
+                          placeholder="135deg, 90deg, 45deg, etc."
+                          value={formData.frontGradientAngle}
                           onChange={(e) =>
-                            setFormData({ ...formData, gradientAngle: e.target.value })
+                            setFormData({
+                              ...formData,
+                              frontGradientAngle: e.target.value,
+                            })
                           }
                           disabled={loading}
                         />
                       </div>
                     </div>
-                  </>
+                  </div>
+                )}
+
+                {/* Back Side Gradients */}
+                {activeTab === 'back' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      {gradientPresets.map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              backGradientStart: preset.start,
+                              backGradientEnd: preset.end,
+                              backGradientAngle: preset.angle,
+                            })
+                          }
+                          className="p-3 rounded-lg text-sm font-medium text-white border-2 border-transparent hover:border-primary transition-colors"
+                          style={{
+                            background: `linear-gradient(${preset.angle}, ${preset.start}, ${preset.end})`,
+                          }}
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <FieldLabel htmlFor="backGradientStart">Start Color</FieldLabel>
+                          <input
+                            type="color"
+                            id="backGradientStart"
+                            value={formData.backGradientStart}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                backGradientStart: e.target.value,
+                              })
+                            }
+                            disabled={loading}
+                            className="w-full h-10 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <FieldLabel htmlFor="backGradientEnd">End Color</FieldLabel>
+                          <input
+                            type="color"
+                            id="backGradientEnd"
+                            value={formData.backGradientEnd}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                backGradientEnd: e.target.value,
+                              })
+                            }
+                            disabled={loading}
+                            className="w-full h-10 rounded cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <FieldLabel htmlFor="backGradientAngle">Angle</FieldLabel>
+                        <Input
+                          id="backGradientAngle"
+                          placeholder="135deg, 90deg, 45deg, etc."
+                          value={formData.backGradientAngle}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              backGradientAngle: e.target.value,
+                            })
+                          }
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </FieldGroup>
@@ -407,51 +513,21 @@ export default function NewCardPage() {
         <div className="lg:col-span-1">
           <div className="sticky top-24">
             <h3 className="font-semibold text-foreground mb-4">Preview</h3>
-            <div className="h-96">
-              <div
-                className="h-full rounded-2xl shadow-xl overflow-hidden text-white p-6 flex flex-col justify-between relative cursor-pointer group"
-                style={{
-                  background: useGradient
-                    ? `linear-gradient(${formData.gradientAngle}, ${formData.gradientStart}, ${formData.gradientEnd})`
-                    : formData.cardColor,
-                }}
-              >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
-                <div className="relative z-10">
-                  {profileImage && (
-                    <div className="mb-4">
-                      <div className="w-16 h-16 rounded-full border-4 border-white overflow-hidden">
-                        <Image
-                          src={profileImage}
-                          alt="Profile"
-                          width={64}
-                          height={64}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <h4 className="text-2xl font-bold mb-1">{formData.title || 'Job Title'}</h4>
-                  {formData.company && (
-                    <p className="text-sm opacity-90 mb-2">{formData.company}</p>
-                  )}
-
-                  <div className="space-y-1 text-sm mt-4 opacity-90">
-                    {formData.email && <p>📧 {formData.email}</p>}
-                    {formData.phone && <p>📱 {formData.phone}</p>}
-                    {formData.website && <p>🌐 {formData.website}</p>}
-                  </div>
-                </div>
-
-                {formData.about && (
-                  <p className="text-xs opacity-75 italic">{formData.about}</p>
-                )}
-
-                <div className="relative z-10 text-center">
-                  <p className="text-xs opacity-60">Tap to flip</p>
-                </div>
-              </div>
-            </div>
+            <FlipCard
+              title={formData.title || 'Job Title'}
+              company={formData.company || 'Company Name'}
+              email={formData.email}
+              phone={formData.phone}
+              website={formData.website}
+              about={formData.about}
+              profileImage={profileImage || undefined}
+              frontGradientStart={formData.frontGradientStart}
+              frontGradientEnd={formData.frontGradientEnd}
+              frontGradientAngle={formData.frontGradientAngle}
+              backGradientStart={formData.backGradientStart}
+              backGradientEnd={formData.backGradientEnd}
+              backGradientAngle={formData.backGradientAngle}
+            />
           </div>
         </div>
       </div>

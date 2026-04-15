@@ -1,9 +1,21 @@
 export const gradientPresets = [
   {
-    name: 'Ocean',
+    name: 'Ocean Blue',
     start: '#0066cc',
     end: '#00ccff',
-    angle: '45deg',
+    angle: '135deg',
+  },
+  {
+    name: 'Azure Green',
+    start: '#0066cc',
+    end: '#00b386',
+    angle: '135deg',
+  },
+  {
+    name: 'Ocean Green',
+    start: '#0052a3',
+    end: '#00c853',
+    angle: '135deg',
   },
   {
     name: 'Sunset',
@@ -30,22 +42,10 @@ export const gradientPresets = [
     angle: '45deg',
   },
   {
-    name: 'Mint Green',
-    start: '#00d2d3',
-    end: '#54a0ff',
-    angle: '135deg',
-  },
-  {
     name: 'Berry Mix',
     start: '#ee0979',
     end: '#ff6a00',
     angle: '90deg',
-  },
-  {
-    name: 'Sky Gradient',
-    start: '#667eea',
-    end: '#764ba2',
-    angle: '45deg',
   },
 ]
 

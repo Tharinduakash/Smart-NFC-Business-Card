@@ -21,6 +21,12 @@ interface Card {
   gradient_start?: string
   gradient_end?: string
   gradient_angle?: string
+  front_gradient_start?: string
+  front_gradient_end?: string
+  front_gradient_angle?: string
+  back_gradient_start?: string
+  back_gradient_end?: string
+  back_gradient_angle?: string
   nfc_url?: string
   created_at: string
 }
@@ -155,6 +161,12 @@ export default function DashboardPage() {
                   gradientStart={card.gradient_start}
                   gradientEnd={card.gradient_end}
                   gradientAngle={card.gradient_angle}
+                  frontGradientStart={card.front_gradient_start}
+                  frontGradientEnd={card.front_gradient_end}
+                  frontGradientAngle={card.front_gradient_angle}
+                  backGradientStart={card.back_gradient_start}
+                  backGradientEnd={card.back_gradient_end}
+                  backGradientAngle={card.back_gradient_angle}
                   nfcUrl={card.nfc_url}
                   qrCodeUrl={`/api/qr?url=${encodeURIComponent(card.nfc_url || `/u/${card.id}`)}`}
                 />

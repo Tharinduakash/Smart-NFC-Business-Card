@@ -12,6 +12,12 @@ export async function createCard(userId: string, cardData: {
   gradientStart?: string
   gradientEnd?: string
   gradientAngle?: string
+  frontGradientStart?: string
+  frontGradientEnd?: string
+  frontGradientAngle?: string
+  backGradientStart?: string
+  backGradientEnd?: string
+  backGradientAngle?: string
   profileImage?: string
   nfcUrl?: string
   socialLinks?: Array<{ platform: string; url: string }>
@@ -24,7 +30,10 @@ export async function createCard(userId: string, cardData: {
     const result = await sql`
       INSERT INTO business_cards (
         user_id, title, company, phone, email, website, about, card_color,
-        gradient_start, gradient_end, gradient_angle, profile_image, nfc_url
+        gradient_start, gradient_end, gradient_angle,
+        front_gradient_start, front_gradient_end, front_gradient_angle,
+        back_gradient_start, back_gradient_end, back_gradient_angle,
+        profile_image, nfc_url
       )
       VALUES (
         ${userId},
@@ -38,6 +47,12 @@ export async function createCard(userId: string, cardData: {
         ${cardData.gradientStart || null},
         ${cardData.gradientEnd || null},
         ${cardData.gradientAngle || null},
+        ${cardData.frontGradientStart || null},
+        ${cardData.frontGradientEnd || null},
+        ${cardData.frontGradientAngle || null},
+        ${cardData.backGradientStart || null},
+        ${cardData.backGradientEnd || null},
+        ${cardData.backGradientAngle || null},
         ${cardData.profileImage || null},
         ${nfcUrlFinal}
       )
@@ -108,6 +123,12 @@ export async function updateCard(cardId: number, cardData: {
   gradientStart?: string
   gradientEnd?: string
   gradientAngle?: string
+  frontGradientStart?: string
+  frontGradientEnd?: string
+  frontGradientAngle?: string
+  backGradientStart?: string
+  backGradientEnd?: string
+  backGradientAngle?: string
   profileImage?: string
   nfcUrl?: string
 }) {
@@ -115,19 +136,25 @@ export async function updateCard(cardId: number, cardData: {
     const result = await sql`
       UPDATE business_cards
       SET
-        title            = COALESCE(${cardData.title            ?? null}, title),
-        company          = COALESCE(${cardData.company          ?? null}, company),
-        phone            = COALESCE(${cardData.phone            ?? null}, phone),
-        email            = COALESCE(${cardData.email            ?? null}, email),
-        website          = COALESCE(${cardData.website          ?? null}, website),
-        about            = COALESCE(${cardData.about            ?? null}, about),
-        card_color       = COALESCE(${cardData.cardColor        ?? null}, card_color),
-        gradient_start   = COALESCE(${cardData.gradientStart    ?? null}, gradient_start),
-        gradient_end     = COALESCE(${cardData.gradientEnd      ?? null}, gradient_end),
-        gradient_angle   = COALESCE(${cardData.gradientAngle    ?? null}, gradient_angle),
-        profile_image    = COALESCE(${cardData.profileImage     ?? null}, profile_image),
-        nfc_url          = COALESCE(${cardData.nfcUrl           ?? null}, nfc_url),
-        updated_at       = CURRENT_TIMESTAMP
+        title                  = COALESCE(${cardData.title                  ?? null}, title),
+        company                = COALESCE(${cardData.company                ?? null}, company),
+        phone                  = COALESCE(${cardData.phone                  ?? null}, phone),
+        email                  = COALESCE(${cardData.email                  ?? null}, email),
+        website                = COALESCE(${cardData.website                ?? null}, website),
+        about                  = COALESCE(${cardData.about                  ?? null}, about),
+        card_color             = COALESCE(${cardData.cardColor             ?? null}, card_color),
+        gradient_start         = COALESCE(${cardData.gradientStart         ?? null}, gradient_start),
+        gradient_end           = COALESCE(${cardData.gradientEnd           ?? null}, gradient_end),
+        gradient_angle         = COALESCE(${cardData.gradientAngle         ?? null}, gradient_angle),
+        front_gradient_start   = COALESCE(${cardData.frontGradientStart   ?? null}, front_gradient_start),
+        front_gradient_end     = COALESCE(${cardData.frontGradientEnd     ?? null}, front_gradient_end),
+        front_gradient_angle   = COALESCE(${cardData.frontGradientAngle   ?? null}, front_gradient_angle),
+        back_gradient_start    = COALESCE(${cardData.backGradientStart    ?? null}, back_gradient_start),
+        back_gradient_end      = COALESCE(${cardData.backGradientEnd      ?? null}, back_gradient_end),
+        back_gradient_angle    = COALESCE(${cardData.backGradientAngle    ?? null}, back_gradient_angle),
+        profile_image          = COALESCE(${cardData.profileImage          ?? null}, profile_image),
+        nfc_url                = COALESCE(${cardData.nfcUrl                ?? null}, nfc_url),
+        updated_at             = CURRENT_TIMESTAMP
       WHERE id = ${cardId}
       RETURNING *
     `
