@@ -73,22 +73,29 @@ export default function SignupPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to create account',
-          variant: 'destructive',
-        })
+        if (response.status === 409) {
+          // Email already registered — redirect to login
+          toast({
+            title: 'Already registered',
+            description: 'This email is already registered. Redirecting to sign in…',
+          })
+          setTimeout(() => router.push('/login'), 1500)
+        } else {
+          toast({
+            title: 'Error',
+            description: data.error || 'Failed to create account',
+            variant: 'destructive',
+          })
+        }
         return
       }
 
       toast({
-        title: 'Success',
-        description: 'Account created! Redirecting to login...',
+        title: 'Account created!',
+        description: 'Redirecting to sign in…',
       })
 
-      setTimeout(() => {
-        router.push('/login')
-      }, 1500)
+      setTimeout(() => router.push('/login'), 1200)
     } catch (error) {
       toast({
         title: 'Error',

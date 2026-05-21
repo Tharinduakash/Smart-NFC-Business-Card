@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcryptjs'
-import { sql } from './db'
+import { sql, ensureDatabase } from './db'
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10)
@@ -11,6 +11,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function getUserByEmail(email: string) {
+  await ensureDatabase()
   try {
     const result = await sql`
       SELECT id, email, username, first_name, last_name, company_name, created_at, updated_at
@@ -19,7 +20,7 @@ export async function getUserByEmail(email: string) {
     `
     return result.length > 0 ? result[0] : null
   } catch (error) {
-    console.error('[v0] Error getting user by email:', error)
+    console.error('[auth] getUserByEmail error:', error)
     throw error
   }
 }
@@ -32,6 +33,7 @@ export async function createUser(
   username?: string,
   companyName?: string
 ) {
+  await ensureDatabase()
   try {
     const hashedPassword = await hashPassword(password)
     // Use email prefix as username if not provided
@@ -57,6 +59,7 @@ export async function createUser(
 }
 
 export async function verifyUserCredentials(email: string, password: string) {
+  await ensureDatabase()
   try {
     const result = await sql`
       SELECT id, email, username, first_name, last_name, password_hash

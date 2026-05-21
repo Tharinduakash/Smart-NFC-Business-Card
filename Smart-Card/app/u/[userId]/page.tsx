@@ -2,22 +2,31 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Mail, Phone, Globe, Linkedin, Twitter, Github, Facebook, Instagram, MessageCircle, Download } from 'lucide-react'
+import {
+  Mail, Phone, Globe, Linkedin, Twitter, Github,
+  Facebook, Instagram, MessageCircle, Download,
+  Wifi, Share2,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import FlipCard from '@/components/FlipCard'
+import BusinessCard from '@/components/BusinessCard'
 
-interface UserProfile {
+interface SocialLink { platform: string; url: string }
+
+interface PublicProfile {
   user: {
     id: number
     email: string
-    name: string
+    first_name?: string
+    last_name?: string
+    name?: string
     profile_image?: string
     bio?: string
     location?: string
   }
   card: {
     id: number
+    name?: string
     title: string
     company?: string
     phone?: string
@@ -26,9 +35,6 @@ interface UserProfile {
     about?: string
     card_color?: string
     profile_image?: string
-    gradient_start?: string
-    gradient_end?: string
-    gradient_angle?: string
     front_gradient_start?: string
     front_gradient_end?: string
     front_gradient_angle?: string
@@ -36,89 +42,53 @@ interface UserProfile {
     back_gradient_end?: string
     back_gradient_angle?: string
     nfc_url?: string
-    socialLinks?: Array<{ platform: string; url: string }>
+    element_positions?: Record<string, unknown>
+    socialLinks?: SocialLink[]
   }
 }
 
-const socialIcons: Record<string, React.ComponentType<any>> = {
-  linkedin: Linkedin,
-  twitter: Twitter,
-  github: Github,
-  facebook: Facebook,
+const SOCIAL_ICONS: Record<string, React.ElementType> = {
+  linkedin:  Linkedin,
+  twitter:   Twitter,
+  github:    Github,
+  facebook:  Facebook,
   instagram: Instagram,
-  whatsapp: MessageCircle,
+  whatsapp:  MessageCircle,
+}
+
+async function writeNFC(url: string) {
+  if (!('NDEFReader' in window)) return false
+  try {
+    // @ts-ignore
+    const ndef = new NDEFReader()
+    await ndef.write({ records: [{ recordType: 'url', data: url }] })
+    return true
+  } catch { return false }
 }
 
 export default function PublicProfilePage() {
   const params = useParams()
   const userId = params.userId as string
-  const [profile, setProfile] = useState<UserProfile | null>(null)
+
+  const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [error,   setError]   = useState<string | null>(null)
+  const [nfcMsg,  setNfcMsg]  = useState<string | null>(null)
 
   useEffect(() => {
-    fetchProfile()
+    fetch(`/api/public/profile/${userId}`)
+      .then(r => { if (!r.ok) throw new Error('Not found'); return r.json() })
+      .then(setProfile)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false))
   }, [userId])
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/public/profile/${userId}`)
-      if (!response.ok) throw new Error('Profile not found')
-      const data = await response.json()
-      setProfile(data)
-
-      // Generate QR code for the profile URL
-      const qrResponse = await fetch(`/api/qr?url=/u/${userId}`)
-      if (qrResponse.ok) {
-        const qrData = await qrResponse.json()
-        setQrCode(qrData.qrCode)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load profile')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const saveContact = () => {
-    if (!profile?.card) return
-
-    const card = profile.card
-    const user = profile.user
-
-    // Create vCard format
-    const vcard = `BEGIN:VCARD
-VERSION:3.0
-FN:${user.name}
-TITLE:${card.title}
-${card.company ? `ORG:${card.company}` : ''}
-${card.email ? `EMAIL:${card.email}` : ''}
-${card.phone ? `TEL:${card.phone}` : ''}
-${card.website ? `URL:${card.website}` : ''}
-${user.location ? `ADR:;;${user.location}` : ''}
-${user.bio ? `NOTE:${user.bio}` : ''}
-END:VCARD`
-
-    // Download vCard
-    const blob = new Blob([vcard], { type: 'text/vcard' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${user.name.replace(/\s+/g, '_')}.vcf`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <Spinner className="mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading profile...</p>
+          <Spinner className="mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">Loading profile…</p>
         </div>
       </div>
     )
@@ -126,10 +96,10 @@ END:VCARD`
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Profile Not Found</h1>
-          <p className="text-muted-foreground">{error || 'The profile you are looking for does not exist.'}</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center px-4">
+          <h1 className="text-2xl font-bold text-foreground mb-2">Profile not found</h1>
+          <p className="text-muted-foreground text-sm">{error}</p>
         </div>
       </div>
     )
@@ -137,177 +107,232 @@ END:VCARD`
 
   const { user, card } = profile
 
+  const displayName =
+    card.name
+    || (user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : null)
+    || user.name
+    || user.email
+
+  const profileUrl = typeof window !== 'undefined'
+    ? window.location.href
+    : `https://yourapp.com/u/${userId}`
+
+  // ── Download vCard ────────────────────────────────────────────────────────
+  const saveContact = () => {
+    const lines = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${displayName}`,
+      card.title ? `TITLE:${card.title}` : '',
+      card.company ? `ORG:${card.company}` : '',
+      card.email   ? `EMAIL:${card.email}` : '',
+      card.phone   ? `TEL:${card.phone}`   : '',
+      card.website ? `URL:${card.website}` : '',
+      user.location ? `ADR:;;${user.location}` : '',
+      user.bio  ? `NOTE:${user.bio}`  : '',
+      card.about ? `NOTE:${card.about}` : '',
+      'END:VCARD',
+    ].filter(Boolean).join('\n')
+
+    const blob = new Blob([lines], { type: 'text/vcard' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `${String(displayName).replace(/\s+/g, '_')}.vcf`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // ── Share profile ─────────────────────────────────────────────────────────
+  const shareProfile = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: `${displayName}'s Card`, url: profileUrl })
+    } else {
+      await navigator.clipboard.writeText(profileUrl)
+      alert('Profile link copied to clipboard!')
+    }
+  }
+
+  // ── NFC write ─────────────────────────────────────────────────────────────
+  const handleNFC = async () => {
+    const ok = await writeNFC(profileUrl)
+    setNfcMsg(
+      ok
+        ? 'NFC tag written! Your physical card is now programmed.'
+        : 'Web NFC is only supported in Chrome on Android. On iPhone or desktop, share the QR code instead.'
+    )
+    setTimeout(() => setNfcMsg(null), 5000)
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8 mb-8">
-            {/* Flip Card */}
-            <div className="flex items-center justify-center">
-              <FlipCard
-                title={card.title}
-                company={card.company}
-                email={card.email}
-                phone={card.phone}
-                website={card.website}
-                about={card.about}
-                profileImage={card.profile_image}
-                cardColor={card.card_color}
-                gradientStart={card.gradient_start}
-                gradientEnd={card.gradient_end}
-                gradientAngle={card.gradient_angle}
-                frontGradientStart={card.front_gradient_start}
-                frontGradientEnd={card.front_gradient_end}
-                frontGradientAngle={card.front_gradient_angle}
-                backGradientStart={card.back_gradient_start}
-                backGradientEnd={card.back_gradient_end}
-                backGradientAngle={card.back_gradient_angle}
-                nfcUrl={card.nfc_url}
-                qrCodeUrl={qrCode || undefined}
-              />
-            </div>
+    <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/40">
+      <div className="max-w-lg mx-auto px-4 py-10 space-y-6">
 
-            {/* Profile Info Card */}
-            <div className="rounded-2xl shadow-2xl overflow-hidden bg-card border border-border">
-              <div
-                className="h-40 p-8 text-white relative overflow-hidden"
-                style={{ backgroundColor: card.card_color || '#3366cc' }}
-              >
-                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20" />
-                <div className="relative z-10">
-                  <h1 className="text-3xl md:text-4xl font-bold mb-2">{user.name}</h1>
-                  <p className="text-lg font-semibold text-white/90">{card.title}</p>
-                  {card.company && <p className="text-white/80">{card.company}</p>}
-                </div>
-              </div>
+        {/* ── Business Card ─────────────────────────────────────────────── */}
+        <BusinessCard
+          name={displayName ?? ''}
+          title={card.title}
+          company={card.company}
+          email={card.email}
+          phone={card.phone}
+          website={card.website}
+          about={card.about}
+          profileImage={card.profile_image}
+          cardColor={card.card_color}
+          frontGradientStart={card.front_gradient_start}
+          frontGradientEnd={card.front_gradient_end}
+          frontGradientAngle={card.front_gradient_angle}
+          backGradientStart={card.back_gradient_start}
+          backGradientEnd={card.back_gradient_end}
+          backGradientAngle={card.back_gradient_angle}
+          nfcUrl={card.nfc_url ?? profileUrl}
+          socialLinks={card.socialLinks}
+          elementPositions={card.element_positions as any}
+        />
 
-              {/* Contact Info */}
-              <div className="p-8 border-t border-border">
-              <div className="space-y-4 mb-8">
-                {card.email && (
-                  <a
-                    href={`mailto:${card.email}`}
-                    className="flex items-center gap-4 group cursor-pointer"
-                  >
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <Mail className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="text-foreground font-medium">{card.email}</p>
-                    </div>
-                  </a>
-                )}
+        <p className="text-center text-xs text-muted-foreground">
+          Tap card to flip · Scan QR on back to save contact
+        </p>
 
-                {card.phone && (
-                  <a
-                    href={`tel:${card.phone}`}
-                    className="flex items-center gap-4 group cursor-pointer"
-                  >
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <Phone className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Phone</p>
-                      <p className="text-foreground font-medium">{card.phone}</p>
-                    </div>
-                  </a>
-                )}
+        {/* NFC notification */}
+        {nfcMsg && (
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
+            {nfcMsg}
+          </div>
+        )}
 
-                {card.website && (
-                  <a
-                    href={card.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-4 group cursor-pointer"
-                  >
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <Globe className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Website</p>
-                      <p className="text-foreground font-medium truncate">{card.website}</p>
-                    </div>
-                  </a>
-                )}
+        {/* ── Primary actions ────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button onClick={saveContact} className="w-full">
+            <Download className="w-4 h-4 mr-2" />
+            Save Contact
+          </Button>
+          <Button variant="outline" onClick={shareProfile} className="w-full">
+            <Share2 className="w-4 h-4 mr-2" />
+            Share
+          </Button>
+        </div>
 
-                {user.location && (
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">📍</span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Location</p>
-                      <p className="text-foreground font-medium">{user.location}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Social Links */}
-              {card.socialLinks && card.socialLinks.length > 0 && (
-                <div className="border-t border-border pt-6 mb-6">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase mb-4">Follow</p>
-                  <div className="flex gap-3 flex-wrap">
-                    {card.socialLinks.map((link) => {
-                      const Icon = socialIcons[link.platform] || Globe
-                      return (
-                        <a
-                          key={link.platform}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-12 h-12 bg-muted hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors text-foreground hover:text-primary"
-                          title={link.platform}
-                        >
-                          <Icon className="w-5 h-5" />
-                        </a>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* About */}
-              {card.about && (
-                <div className="border-t border-border pt-6 mb-6">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase mb-3">About</p>
-                  <p className="text-foreground leading-relaxed">{card.about}</p>
-                </div>
-              )}
-
-              {/* Bio */}
-              {user.bio && (
-                <div className="border-t border-border pt-6 mb-6">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase mb-3">Bio</p>
-                  <p className="text-foreground leading-relaxed">{user.bio}</p>
-                </div>
-              )}
-
-                {/* Action Buttons */}
-                <div className="border-t border-border pt-6 flex gap-3">
-                  <Button onClick={saveContact} className="flex-1">
-                    <Download className="w-4 h-4 mr-2" />
-                    Save Contact
-                  </Button>
-                  {card.email && (
-                    <a href={`mailto:${card.email}`} className="flex-1">
-                      <Button variant="outline" className="w-full">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Email
-                      </Button>
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* ── Contact info card ──────────────────────────────────────────── */}
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+          {/* Header band */}
+          <div
+            className="px-6 py-5 text-white"
+            style={{
+              background: card.front_gradient_start && card.front_gradient_end
+                ? `linear-gradient(${card.front_gradient_angle ?? '135deg'}, ${card.front_gradient_start}, ${card.front_gradient_end})`
+                : card.card_color ?? '#3366cc',
+            }}
+          >
+            <h1 className="text-2xl font-bold">{displayName}</h1>
+            <p className="text-white/90 font-medium">{card.title}</p>
+            {card.company && <p className="text-white/75 text-sm">{card.company}</p>}
           </div>
 
-          {/* Footer */}
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Digital business card powered by SmartCard</p>
+          {/* Contact rows */}
+          <div className="divide-y divide-border">
+            {card.email && (
+              <a href={`mailto:${card.email}`} className="flex items-center gap-4 px-6 py-4 hover:bg-muted/40 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Mail className="w-5 h-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium text-foreground truncate">{card.email}</p>
+                </div>
+              </a>
+            )}
+
+            {card.phone && (
+              <a href={`tel:${card.phone}`} className="flex items-center gap-4 px-6 py-4 hover:bg-muted/40 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Phone className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Phone</p>
+                  <p className="text-sm font-medium text-foreground">{card.phone}</p>
+                </div>
+              </a>
+            )}
+
+            {card.website && (
+              <a
+                href={card.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 px-6 py-4 hover:bg-muted/40 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Globe className="w-5 h-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Website</p>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {card.website.replace(/^https?:\/\//, '')}
+                  </p>
+                </div>
+              </a>
+            )}
+          </div>
+
+          {/* Social links */}
+          {card.socialLinks && card.socialLinks.length > 0 && (
+            <div className="px-6 py-5 border-t border-border">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-3">
+                Connect
+              </p>
+              <div className="flex gap-3 flex-wrap">
+                {card.socialLinks.map(link => {
+                  const Icon = SOCIAL_ICONS[link.platform] || Globe
+                  return (
+                    <a
+                      key={link.platform}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-11 h-11 rounded-xl bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors text-muted-foreground hover:text-primary"
+                      title={link.platform}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* About / bio */}
+          {(card.about || user.bio) && (
+            <div className="px-6 py-5 border-t border-border">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-2">
+                About
+              </p>
+              <p className="text-sm text-foreground leading-relaxed">
+                {card.about || user.bio}
+              </p>
+            </div>
+          )}
+
+          {/* NFC write button */}
+          <div className="px-6 py-4 border-t border-border bg-muted/20">
+            <Button
+              variant="outline"
+              className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400"
+              onClick={handleNFC}
+            >
+              <Wifi className="w-4 h-4 mr-2" />
+              Write to NFC Tag
+            </Button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Android Chrome only · Programs a physical NFC card with this profile
+            </p>
           </div>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground pb-4">
+          Powered by SmartCard · Digital NFC Business Cards
+        </p>
       </div>
     </div>
   )
